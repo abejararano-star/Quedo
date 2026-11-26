@@ -3,7 +3,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{Portal,Metrics};
 Route::get('/admin',[Metrics::class,'dashboard']);
 Route::get('/anfitrion',[Portal::class,'index']);
-Route::get('/admin/anuncios',[Portal::class,'index']);
+Route::get('/admin/anuncios',[Portal::class,'index'])->name('admin.listings');
 Route::get('/anfitrion/nuevo',[Portal::class,'form']);
 Route::post('/anfitrion/nuevo',[Portal::class,'save'])->middleware('throttle:30,60');
 Route::get('/anfitrion/{listing}/editar',[Portal::class,'form']);

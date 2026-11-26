@@ -25,7 +25,7 @@ class BrowserSession {
         return [curl_getinfo($this->handle,CURLINFO_RESPONSE_CODE),$body];
     }
 }
-$run=Str::lower(Str::random(10)); $pw=bin2hex(random_bytes(16)); $ids=[];$listing=null;
+$run=Str::lower(Str::random(10)); $pw=bin2hex(random_bytes(16)); $ids=[];$listing=$realListing=null;
 try {
     $guest=new BrowserSession;
     check(str_contains($guest->request('/')[1],'Sentirte en casa'),'portada Blade en Apache');
@@ -84,15 +84,46 @@ try {
     $host->request('/anfitrion/'.$listing->id.'/editar');unset($fields['uploads[0]']);$fields['keep[0]']='/media/'.$key;
     $host->request('/anfitrion/'.$listing->id.'/editar',$fields);
     check(DB::table('Listing')->where('id',$listing->id)->value('status')==='PENDING','edición regresa a revisión');
-    DB::table('Listing')->where('id',$listing->id)->update(['isDemo'=>false,'status'=>'PUBLISHED','whatsapp'=>'573000000000']);
-    $guest->request($detail);
-    $guest->request($detail.'/contactar',$dates);
-    check(DB::table('Contact')->where(['listingId'=>$listing->id,'isSimulated'=>false,'status'=>'INITIATED'])->count()===1,'consulta por WhatsApp registrada sin enviar el mensaje');
+    $realHost=new BrowserSession;
+    $realEmail="qa-real-$run@example.invalid";
+    $realHost->request('/registro');
+    $registration=$realHost->request('/registro',['name'=>'Anfitrión temporal','email'=>$realEmail,
+        'password'=>$pw,'perfil'=>'anfitrion','consent'=>'on']);
+    $realHostId=DB::table('User')->where('email',$realEmail)->value('id');
+    if ($realHostId) $ids[]=$realHostId;
+    check($registration[0]===302 && $realHostId,'registro de anfitrión real');
+    $realFields=array_replace($fields,['title'=>"Estadía real temporal $run",'whatsapp'=>'573000000000','rnt'=>'123456',
+        'uploads[0]'=>new CURLFile(dirname(__DIR__).'/public/images/apartment-1.jpg','image/jpeg','foto.jpg')]);
+    unset($realFields['keep[0]']);
+    $realHost->request('/anfitrion/nuevo');
+    $realHost->request('/anfitrion/nuevo',$realFields);
+    $realListing=DB::table('Listing')->where('title',$realFields['title'])->first();
+    check($realListing && !$realListing->isDemo && $realListing->status==='PENDING','anuncio real enviado a revisión');
+    $search='?q='.rawurlencode($realListing->title);
+    $apiSearch='/api/v1/estadias'.$search;
+    $webSearch='/estadias'.$search;
+    $realDetail='/estadias/'.$realListing->slug;
+    check(!str_contains($guest->request($webSearch)[1],'class="listing-card"')
+        && json_decode($guest->request($apiSearch)[1],true)['data']===[]
+        && $guest->request($realDetail)[0]===404,'anuncio pendiente fuera de web y API');
+    $review='/admin/anuncios/'.$realListing->id;
+    $queue=$admin->request('/admin/anuncios?datos=reales&estado=pendientes')[1];
+    check(str_contains($queue,$realListing->title) && str_contains($queue,'Aprobar y publicar'),'cola de revisión de anuncios reales');
+    $decision=['status'=>'PUBLISHED','note'=>'Revisión temporal de anuncio real.','reviewed'=>'on'];
+    check($realHost->request($review,$decision)[0]===403,'solo el administrador aprueba anuncios');
+    check($admin->request($review,$decision)[0]===302
+        && DB::table('Listing')->where('id',$realListing->id)->value('status')==='PUBLISHED','administrador publica un anuncio real');
+    $published=json_decode($guest->request($apiSearch)[1],true)['data'];
+    check(str_contains($guest->request($webSearch)[1],'class="listing-card"')
+        && $published[0]['slug']===$realListing->slug && $published[0]['demo']===false
+        && $guest->request($realDetail)[0]===200,'anuncio real publicado en web y API');
+    $guest->request($realDetail.'/contactar',$dates);
+    check(DB::table('Contact')->where(['listingId'=>$realListing->id,'isSimulated'=>false,'status'=>'INITIATED'])->count()===1,'consulta por WhatsApp registrada sin enviar el mensaje');
 } catch (Throwable $error) {
     fwrite(STDERR,"Falló la verificación: ".$error->getMessage().PHP_EOL);
     $failed=true;
 } finally {
-    if($listing) {
+    foreach (array_filter([$listing,$realListing]) as $listing) {
         $media=DB::table('Media')->where('listingId',$listing->id)->pluck('key');
         $visits=DB::table('PageView')->where('listingId',$listing->id)->pluck('visitId')->merge(DB::table('Contact')->where('listingId',$listing->id)->pluck('visitId'))->filter()->unique();
         DB::table('Listing')->where('id',$listing->id)->delete();

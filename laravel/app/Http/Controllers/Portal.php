@@ -19,14 +19,19 @@ class Portal {
     }
     public function index(Request $r) {
         $listings = self::listings($r);
-        $items = (clone $listings)->orderByDesc('updatedAt')->paginate(20)->withQueryString();
+        $admin = $r->is('admin/*');
+        $pending = $admin && $r->query('estado') === 'pendientes';
+        $items = (clone $listings)
+            ->when($pending, fn ($query) => $query->where('status', 'PENDING'))
+            ->when($admin, fn ($query) => $query->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', ['PENDING']))
+            ->orderByDesc('updatedAt')->paginate(20)->withQueryString();
         $reports = $audit = collect();
-        if ($r->is('admin/*')) {
+        if ($admin) {
             $ids = $listings->select('id');
             $reports = DB::table('Report')->whereIn('listingId',$ids)->latest('createdAt')->limit(20)->get();
             $audit = DB::table('AuditLog')->whereIn('entityId',$ids)->latest('createdAt')->limit(20)->get();
         }
-        return view('panel',compact('items','reports','audit'));
+        return view('panel',compact('items','reports','audit','admin','pending'));
     }
     private function editPermission(Request $r, Listing $listing) {
         self::authorizePanel($r);
@@ -114,7 +119,12 @@ class Portal {
             $listing->status=$d['status']; $listing->reviewedAt=now(); $listing->reviewNote=$d['note']; $listing->save();
             self::audit($r,$listing->id,'MODERATION_'.$d['status'],$d['note']);
         });
-        return back()->with('notice','Decisión guardada.');
+        $notice = match ($d['status']) {
+            'PUBLISHED' => 'Anuncio publicado. Ya aparece en el catálogo de la web y de la app.',
+            'REJECTED' => 'Se solicitaron cambios al anfitrión.',
+            'PAUSED' => 'Anuncio pausado.',
+        };
+        return back()->with('notice', $notice);
     }
     public function contacts(Request $r) {
         $items=DB::table('Contact as c')->join('Listing as l','l.id','=','c.listingId')->whereIn('l.id',self::listings($r)->select('id'))
