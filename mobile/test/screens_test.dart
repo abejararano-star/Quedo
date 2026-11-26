@@ -37,7 +37,7 @@ void main() {
         'beds': 1,
         'bathrooms': 1,
         'demo': true,
-        'photos': <String>[],
+        'photos': ['/images/apartment-1.jpg', '/images/apartment-2.jpg'],
         'contact_available': false,
       };
       final catalog = QuedoCatalog(
@@ -64,6 +64,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Luz y calma'), findsOneWidget);
+      await tester.tap(find.byTooltip('Ampliar foto'));
+      await tester.pumpAndSettle();
+      expect(find.text('Foto 1 de 2'), findsOneWidget);
+      await tester.tap(find.byTooltip('Foto siguiente'));
+      await tester.pumpAndSettle();
+      expect(find.text('Foto 2 de 2'), findsOneWidget);
+      await tester.tap(find.text('Volver a la ficha'));
+      await tester.pumpAndSettle();
+      expect(find.text('Luz y calma'), findsOneWidget);
       await tester.tap(find.byTooltip('Guardar estadía'));
       await tester.pumpAndSettle();
       expect(find.byTooltip('Quitar de guardados'), findsOneWidget);
@@ -71,7 +80,15 @@ void main() {
       addTearDown(reopened.dispose);
       await reopened.load();
       expect(reopened.slugs, ['luz-y-calma']);
-      await tester.scrollUntilVisible(find.text('Consultar fechas'), 200);
+      await tester.scrollUntilVisible(
+        find.text('Consultar fechas'),
+        200,
+        scrollable: find.byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        ),
+      );
       expect(find.textContaining('125.000'), findsOneWidget);
       expect(find.text('Consultar en Quedo'), findsNothing);
     },

@@ -611,9 +611,15 @@ class StayCard extends StatelessWidget {
 }
 
 class StayPhoto extends StatelessWidget {
-  const StayPhoto({super.key, required this.catalog, required this.path});
+  const StayPhoto({
+    super.key,
+    required this.catalog,
+    required this.path,
+    this.fit = BoxFit.cover,
+  });
   final QuedoCatalog catalog;
   final String? path;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -626,12 +632,92 @@ class StayPhoto extends StatelessWidget {
       return Image.network(
         catalog.photo(path!).toString(),
         width: double.infinity,
-        fit: BoxFit.cover,
+        fit: fit,
         errorBuilder: (_, _, _) => placeholder,
       );
     } on FormatException {
       return placeholder;
     }
+  }
+}
+
+class _PhotoViewer extends StatefulWidget {
+  const _PhotoViewer({
+    required this.catalog,
+    required this.photos,
+    required this.initialPhoto,
+  });
+
+  final QuedoCatalog catalog;
+  final List<String> photos;
+  final int initialPhoto;
+
+  @override
+  State<_PhotoViewer> createState() => _PhotoViewerState();
+}
+
+class _PhotoViewerState extends State<_PhotoViewer> {
+  late final PageController _pages = PageController(
+    initialPage: widget.initialPhoto,
+  );
+  late int _index = widget.initialPhoto;
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final count = widget.photos.length;
+    return Scaffold(
+      appBar: AppBar(title: Text('Foto ${_index + 1} de $count')),
+      backgroundColor: navy,
+      body: SafeArea(
+        child: PageView.builder(
+          controller: _pages,
+          onPageChanged: (index) => setState(() => _index = index),
+          itemCount: count,
+          itemBuilder: (context, index) => StayPhoto(
+            catalog: widget.catalog,
+            path: widget.photos[index],
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: ColoredBox(
+          color: Colors.white,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              if (count > 1)
+                IconButton(
+                  tooltip: 'Foto anterior',
+                  onPressed: _index == 0
+                      ? null
+                      : () => _pages.jumpToPage(_index - 1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+                label: const Text('Volver a la ficha'),
+              ),
+              if (count > 1)
+                IconButton(
+                  tooltip: 'Foto siguiente',
+                  onPressed: _index + 1 == count
+                      ? null
+                      : () => _pages.jumpToPage(_index + 1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -744,7 +830,7 @@ class _ListingScreenState extends State<ListingScreen> {
                 if (item.slug == listing.slug) {
                   Navigator.of(context).pop();
                 } else {
-                  Navigator.of(context).pushReplacement(
+                  Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => ListingScreen(
                         slug: item.slug,
@@ -757,6 +843,18 @@ class _ListingScreenState extends State<ListingScreen> {
               },
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _openPhoto(Listing item, int index) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _PhotoViewer(
+          catalog: widget.catalog,
+          photos: item.photos,
+          initialPhoto: index,
         ),
       ),
     );
@@ -809,14 +907,30 @@ class _ListingScreenState extends State<ListingScreen> {
                     aspectRatio: 1.45,
                     child: item.photos.isEmpty
                         ? StayPhoto(catalog: widget.catalog, path: null)
-                        : PageView.builder(
-                            itemCount: item.photos.length,
-                            onPageChanged: (index) =>
-                                setState(() => _photo = index),
-                            itemBuilder: (context, index) => StayPhoto(
-                              catalog: widget.catalog,
-                              path: item.photos[index],
-                            ),
+                        : Stack(
+                            children: [
+                              PageView.builder(
+                                itemCount: item.photos.length,
+                                onPageChanged: (index) =>
+                                    setState(() => _photo = index),
+                                itemBuilder: (context, index) => InkWell(
+                                  onTap: () => _openPhoto(item, index),
+                                  child: StayPhoto(
+                                    catalog: widget.catalog,
+                                    path: item.photos[index],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 8,
+                                bottom: 8,
+                                child: IconButton.filledTonal(
+                                  tooltip: 'Ampliar foto',
+                                  onPressed: () => _openPhoto(item, _photo),
+                                  icon: const Icon(Icons.fullscreen),
+                                ),
+                              ),
+                            ],
                           ),
                   ),
                 ),
