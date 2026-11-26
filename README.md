@@ -6,6 +6,10 @@ Plataforma de estadías temporales para Quibdó. Primera versión local: vitrina
 
 La versión local abre en <http://127.0.0.1:8089/> con Apache de XAMPP y la base independiente `quedo_laravel`. El código está en [laravel/](laravel/README.md). Para encender la instalación preparada después de reiniciar Windows, ejecuta `.\laravel\iniciar-local.ps1`. Para aplicar cambios a la copia de XAMPP, ejecuta `.\laravel\sincronizar-local.ps1`.
 
+## App móvil en Flutter
+
+La app Android e iOS está en [mobile/](mobile/README.md). Consulta el catálogo de Laravel y conserva los guardados en el dispositivo. La guía móvil incluye la configuración del enlace a la API y la compilación.
+
 ## Implementación anterior en Next.js
 
 Las instrucciones siguientes corresponden a la aplicación anterior y permiten consultarla durante la transición.
