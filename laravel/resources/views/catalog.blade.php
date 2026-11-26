@@ -6,7 +6,11 @@
 @endif
 <section class="container page-space">
 @if(!request()->is('guardados'))
+@if($district ?? null)
+<p>Mostrando estadías en <strong>{{ $district }}</strong>. <a class="text-link" href="{{ route('map') }}">Elegir otro barrio en el mapa</a></p>
+@endif
 <form class="search-bar" action="{{ url('estadias') }}">
+@if($district ?? null)<input type="hidden" name="barrio" value="{{ $district }}">@endif
 @foreach(['q'=>'Barrio o alojamiento','llegada'=>'Entrada','salida'=>'Salida','personas'=>'Huéspedes'] as $key=>$label)
 <label class="search-field"><span><span class="search-label">{{ $label }}</span><input type="{{ $key==='q'?'search':($key==='personas'?'number':'date') }}" min="{{ $key==='personas'?1:now('America/Bogota')->toDateString() }}" name="{{ $key }}" value="{{ request()->string($key) }}" placeholder="{{ $key==='q'?'Explora Quibdó':'' }}"></span></label>
 @endforeach

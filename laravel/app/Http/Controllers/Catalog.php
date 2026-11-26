@@ -1,16 +1,20 @@
 <?php
 namespace App\Http\Controllers;
 use App\Models\Listing;
+use App\Support\MapZones;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class Catalog {
     public function index(Request $r) {
-        $validator = validator($r->query(), ['q'=>'nullable|string|max:100','personas'=>'nullable|integer|between:1,30','precio'=>'nullable|integer|min:0','tipo'=>'nullable|string|max:40','servicio'=>'nullable','orden'=>'nullable|in:precio-asc,precio-desc','llegada'=>'nullable|required_with:salida|date_format:Y-m-d|after_or_equal:'.now('America/Bogota')->toDateString(),'salida'=>'nullable|required_with:llegada|date_format:Y-m-d|after:llegada']);
+        $validator = validator($r->query(), ['q'=>'nullable|string|max:100','barrio'=>['nullable',Rule::in(array_keys(config('quedo.map_zones')))],'personas'=>'nullable|integer|between:1,30','precio'=>'nullable|integer|min:0','tipo'=>'nullable|string|max:40','servicio'=>'nullable','orden'=>'nullable|in:precio-asc,precio-desc','llegada'=>'nullable|required_with:salida|date_format:Y-m-d|after_or_equal:'.now('America/Bogota')->toDateString(),'salida'=>'nullable|required_with:llegada|date_format:Y-m-d|after:llegada']);
         if ($validator->fails()) return redirect('/estadias')->withErrors(['consulta'=>'Revisa el intervalo, los huéspedes y los filtros.']);
         $filters = $validator->validated();
         $list = Listing::where('status','PUBLISHED');
+        $district = $filters['barrio'] ?? null;
+        if ($district !== null) $list->where('city','Quibdó')->where('district',$district);
         if ($q = $filters['q'] ?? '') $list->where(function($sub) use ($q) {
             foreach (['title','district','city','summary'] as $column) $sub->orWhere($column,'like',"%$q%");
         });
@@ -20,7 +24,10 @@ class Catalog {
         foreach (array_slice((array)($filters['servicio'] ?? []),0,8) as $s) if (is_string($s) && $s !== '') $list->whereJsonContains('amenities',$s);
         if ($sort = $filters['orden'] ?? '') $list->orderBy('priceNight',$sort === 'precio-asc' ? 'asc':'desc');
         $items = $list->orderByDesc('featured')->orderByDesc('createdAt')->orderBy('id')->paginate($r->is('/') ? 4 : 12)->withQueryString();
-        return view('catalog',compact('items'));
+        return view('catalog',compact('items','district'));
+    }
+    public function map() {
+        return view('map', ['zones' => MapZones::published(), 'tiles' => config('quedo.map_tiles')]);
     }
     private function visit(Request $r) {
         $id = $r->session()->get('visit_id');

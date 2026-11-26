@@ -1,0 +1,44 @@
+[data-install-quedo][hidden] { display: none; }
+.install-action, .google-access-button {
+    min-height: 44px;
+    padding: .65rem 1.15rem;
+    border: 1px solid #d6dee2;
+    border-radius: .65rem;
+    background: #fff;
+    color: #102c42;
+    font-weight: 700;
+}
+.google-access-form { display: grid; gap: .75rem; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e7e9e9; }
+.google-access-button:disabled { cursor: default; }
+.google-access-help { font-size: .88rem; color: #486170; }
+.captcha-message { color: #9b2825; }
+.mobile-navigation { display: none; }
+@media (max-width: 640px) {
+    body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+    .mobile-navigation {
+        display: grid;
+        grid-template-columns: repeat(4,minmax(0,1fr));
+        position: fixed;
+        z-index: 45;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+        background: #fff;
+        border-top: 1px solid #dce4e7;
+    }
+    .mobile-navigation a {
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 2px;
+        min-height: 54px;
+        padding: 4px;
+        border-radius: .55rem;
+        color: #486170;
+        font-size: .75rem;
+        font-weight: 700;
+    }
+    .mobile-navigation a[aria-current="page"] { color: #102c42; background: #edf3f4; }
+    .mobile-navigation svg { width: 20px; height: 20px; }
+}

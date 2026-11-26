@@ -29,6 +29,13 @@ coverage/
 *.key
 *.p12
 *.pfx
+*.p8
+*.mobileprovision
+client_secret*.json
+*.apk
+*.aab
+*.ipa
+*.xcarchive/
 .npmrc
 .aws/
 .vercel/

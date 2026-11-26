@@ -7,7 +7,7 @@ class User extends Authenticatable {
     public $incrementing = false;
     protected $keyType = 'string';
     public $timestamps = false;
-    protected $hidden = ['passwordHash'];
+    protected $hidden = ['passwordHash', 'googleSubject'];
     public function getAuthPasswordName() { return 'passwordHash'; }
     public function panel(): string {
         return match($this->role) { 'ADMIN'=>'/admin', 'HOST'=>'/anfitrion', default=>'/huesped' };
