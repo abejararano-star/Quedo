@@ -1,80 +1,48 @@
-# Quedo
+# Quedo en Laravel
 
-Plataforma de estadías temporales para Quibdó. Primera versión local: vitrina comercial, catálogo, fichas, favoritos, contacto por WhatsApp, anfitriones y moderación administrativa.
+Plataforma de estadías temporales para Quibdó construida con **Laravel 12** y **Blade** (compatible con **PHP 8.2, 8.3, 8.4 y 8.5** y **Composer 2**).
 
-## Aplicación principal en Laravel y Blade
+## Despliegue en Hostinger desde Git (`public_html`)
 
-La versión local abre en <http://127.0.0.1:8089/> con Apache de XAMPP y la base independiente `quedo_laravel`. El código está en [laravel/](laravel/README.md). Para encender la instalación preparada después de reiniciar Windows, ejecuta `.\laravel\iniciar-local.ps1`. Para aplicar cambios a la copia de XAMPP, ejecuta `.\laravel\sincronizar-local.ps1`.
+1. En **hPanel → Avanzado → Configuración PHP**, selecciona **PHP 8.5** (o 8.2/8.3/8.4) y asegúrate de tener activas las extensiones `pdo_mysql`, `gd` (con WebP), `mbstring`, `openssl` y `sodium`.
+2. En **hPanel → Avanzado → Git**, conecta este repositorio (`main`) hacia `public_html` (o usa un dominio con raíz en `public/`). El archivo `.htaccess` en la raíz redirige automáticamente las peticiones hacia `public/` y bloquea el acceso público a `.env`, `storage/`, `app/`, `vendor/`, `database/` y archivos internos.
+3. Si Hostinger no instala dependencias automáticamente al desplegar, entra por **SSH** a la carpeta del sitio y ejecuta:
+   ```bash
+   composer2 install --no-dev --optimize-autoloader
+   ```
+   *(Si tu SSH usa un PHP antiguo por defecto, ejecuta `/opt/alt/php85/usr/bin/php /usr/local/bin/composer2 install --no-dev --optimize-autoloader`).*
+4. Crea una base de datos MySQL/MariaDB y su usuario en **hPanel → Bases de datos**. En **phpMyAdmin**, importa `database/schema/quedo.sql` sobre la base vacía.
+5. Copia `.env.example` a `.env` y configura:
+   - `APP_ENV=production`
+   - `APP_DEBUG=false`
+   - `APP_URL=https://tu-dominio.com`
+   - `SESSION_SECURE_COOKIE=true`
+   - `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` con los datos de hPanel.
+6. Desde SSH en la raíz del proyecto (usando `php`, o `/opt/alt/php85/usr/bin/php`), ejecuta:
+   ```bash
+   php artisan key:generate --force
+   php artisan migrate --force
+   php artisan config:cache
+   php artisan route:cache
+   php artisan view:cache
+   php artisan quedo:crear-admin tu-correo@ejemplo.com
+   ```
+7. Asegúrate de que el proceso PHP tenga permisos de escritura en `storage/` y `bootstrap/cache/`.
 
-## App móvil en Flutter
+## Despliegue alternativo en carpetas separadas (`quedo/` + `public_html/`)
 
-La app Android e iOS está en [mobile/](mobile/README.md). Consulta el catálogo de Laravel y conserva los guardados en el dispositivo. La guía móvil incluye la configuración del enlace a la API y la compilación.
+Si prefieres mantener Laravel fuera de `public_html/`:
+1. Sube el proyecto a una carpeta hermana de `public_html`, por ejemplo `quedo/`.
+2. Copia el contenido de `public/` dentro de `public_html/` y reemplaza `public_html/index.php` por `deploy/hostinger/index.php`.
 
-## Implementación anterior en Next.js
+## Google OAuth y reCAPTCHA v3
 
-Las instrucciones siguientes corresponden a la aplicación anterior y permiten consultarla durante la transición.
+1. En Google Cloud, registra como URI de redireccionamiento autorizado: `https://tu-dominio.com/acceso/google/retorno`.
+2. Configura `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en `.env`.
+3. Para reCAPTCHA v3, configura `RECAPTCHA_ENABLED=true`, `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET_KEY`.
+4. Ejecuta `php artisan config:cache` tras modificar `.env`.
 
-### Entorno anterior
+## Instalación local en Windows
 
-- Node.js 24 y npm.
-- MariaDB/MySQL local. Entorno comprobado: XAMPP, MariaDB 10.4.32, base `quedo`.
-- Next.js 16.4.6, React 19, TypeScript, Tailwind 4, Prisma 6.19.
-
-## Preparación
-
-1. Instalar con `npm ci` (la primera preparación utiliza `npm install`).
-2. Copiar `.env.example` a `.env`. Ajustar `DATABASE_URL` y generar un `RATE_LIMIT_SECRET` aleatorio. No versionar `.env`.
-3. Iniciar MySQL/MariaDB en XAMPP.
-4. Ejecutar `npm run db:generate` y `npm run db:migrate`.
-5. Ejecutar `npm run db:seed` para añadir seis anuncios ficticios, sin sobrescribir registros existentes.
-6. Ejecutar `npm run dev`. Abrir `http://127.0.0.1:3000`.
-
-La aplicación se ejecuta en Node; no se sirve mediante Apache ni requiere mover el proyecto a `htdocs`.
-
-## Administrador
-
-`npm run admin:create` recibe por entrada estándar un objeto JSON con `name`, `email` y `password` (mínimo doce caracteres). No pasar secretos como argumentos de consola ni guardarlos en el repositorio. El comando crea una cuenta nueva ADMIN y rechaza correos existentes. No hay credenciales administrativas predeterminadas.
-
-Las cuentas registradas desde la interfaz tienen rol HOST. La recuperación de cuenta y la verificación de correo están pendientes antes del piloto público.
-
-## Paneles y escenario de prueba
-
-`npx tsx scripts/setup-playground.ts` prepara un administrador y dos anfitriones de prueba, anuncios editables e historial simulado. Solo funciona en local, imprime una contraseña aleatoria únicamente al crear cada cuenta y conserva los registros existentes. Las credenciales no están en el repositorio.
-
-Administración: `/admin`, `/admin/anuncios`, `/admin/contactos` y `/admin/anfitriones`. Anfitrión: `/anfitrion`, `/anfitrion/contactos` y `/anfitrion/metricas`. Los paneles incluyen períodos, datos reales/prueba separados y exportaciones CSV con permisos por rol y propietario.
-
-El seguimiento de contactos y planes es manual; no verifica pagos ni cobra suscripciones. Consulta las [definiciones y el recorrido de prueba](docs/PANELES_Y_METRICAS.md).
-
-## Verificación
-
-```text
-npm test
-npm run typecheck
-npm run build
-```
-
-Con el servidor local iniciado, `npx tsx scripts/smoke-test.ts` comprueba el flujo HTTP de registro, permisos, fotografías, moderación, contacto y medición. Crea sus propias cuentas y anuncios temporales y los elimina al finalizar; no sigue enlaces a WhatsApp ni envía mensajes.
-
-En Windows, si la descarga automática del motor de Prisma se interrumpe, `scripts/setup-prisma-windows.ps1` reanuda únicamente las descargas oficiales de la versión instalada, verifica SHA-256 y configura las rutas locales en `.env`. No se desactiva la validación TLS.
-
-`npm run start` sirve la compilación local. `npx tsx scripts/cleanup.ts` elimina únicamente sesiones y límites de solicitudes vencidos. Programar su ejecución en el entorno productivo cuando se defina.
-
-## Datos y fotografías
-
-- Las migraciones están en `prisma/migrations`.
-- Las fotografías subidas se almacenan en `storage/media`, ignorado por Git. Debe respaldarse junto con la base.
-- Los archivos se recodifican a WebP, con límites de tamaño y píxeles y sin metadatos EXIF.
-- `/media/[key]` comprueba publicación o permiso de propietario/administrador en cada lectura.
-- El navegador solo conoce teléfonos reales al abrir el contacto público autorizado; no hay teléfonos ficticios.
-- Los ejemplos no habilitan WhatsApp ni cuentan como oferta real.
-- Los robots están bloqueados durante desarrollo. El manifiesto web es una base; todavía no hay soporte offline.
-
-## Producción
-
-Las cuentas de prueba solo admiten acceso con el servidor de desarrollo y una URL de aplicación local. Los límites anónimos comparten un contador por operación y ventana de tiempo por defecto. Configura `TRUST_PROXY=true` únicamente detrás de un proxy que sobrescriba `X-Real-IP` y que sea el único punto de entrada al servidor. Genera `RATE_LIMIT_SECRET` con 32 bytes aleatorios o más.
-
-Para un despliegue, usa HTTPS en `APP_URL` para activar las cookies Secure, una cuenta de base de datos de privilegios mínimos, almacenamiento persistente y respaldos privados. Mantén XAMPP local. Define la retención de eventos y auditoría antes de abrir el servicio al público.
-
-No se procesan pagos ni reservas internas. Se registra el historial manual de planes para calcular métricas; las tarifas comerciales del plan maestro no se cobran desde la plataforma.
-
-Documentación: [auditoría](docs/AUDITORIA.md), [plan](docs/PLAN_DESARROLLO.md), [activos](docs/ASSETS.md).
+- Código móvil Flutter en [mobile/](mobile/README.md) y documentación en [docs/](docs/PLAN_DESARROLLO.md).
+- Para sincronizar con la copia local en XAMPP (`C:\xampp\quedo-laravel-local`), usa `sincronizar-local.ps1` e `iniciar-local.ps1`.
