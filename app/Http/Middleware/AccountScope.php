@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 
 class AccountScope {
     public static function allowsTests(): bool {
-        return app()->environment('local') && in_array(parse_url(config('app.url'), PHP_URL_HOST), ['localhost','127.0.0.1','[::1]'], true);
+        return app()->environment('local') && in_array(parse_url((string) config('app.url'), PHP_URL_HOST), ['localhost','127.0.0.1','[::1]'], true);
     }
     public function handle(Request $request, Closure $next) {
         if ($request->user()?->isTest && !self::allowsTests()) {
