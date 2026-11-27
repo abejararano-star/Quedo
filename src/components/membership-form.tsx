@@ -1,8 +1,0 @@
-"use client";
-import { useActionState } from "react";
-import { updateMembership } from "@/app/portal-actions";
-import { membershipLabels } from "@/lib/analytics-math";
-export function MembershipForm({ hostId, status = "TRIAL", plan = "Básico", monthlyPrice = 0, today }: { hostId: string; status?: string; plan?: string; monthlyPrice?: number; today: string }) {
-  const [state, action, pending] = useActionState(updateMembership, {});
-  return <form action={action} className="membership-form"><input type="hidden" name="hostId" value={hostId}/><div className="form-columns"><label>Nuevo estado<select name="status" defaultValue={status}>{Object.entries(membershipLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><label>Nombre del plan<input name="plan" defaultValue={plan} minLength={2} maxLength={80} required/></label><label>Tarifa mensual registrada (COP)<input name="monthlyPrice" type="number" min={0} max={10000000} defaultValue={monthlyPrice} required/></label><label>Fecha de efecto<input name="effectiveDay" type="date" defaultValue={today} max={today} required/></label></div><label>Motivo o soporte del cambio<textarea name="note" minLength={10} maxLength={500} rows={2} required placeholder="Describe por qué cambió el estado. No se realizan cobros."/></label>{state.error && <p className="form-message form-error" role="alert">{state.error}</p>}{state.success && <p className="form-message" role="status">{state.success}</p>}<button className="button button-primary" disabled={pending}>{pending ? "Registrando…" : "Registrar cambio de plan"}</button></form>;
-}

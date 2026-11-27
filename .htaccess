@@ -1,0 +1,20 @@
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Permitir validación SSL (Let's Encrypt / ACME)
+    RewriteRule ^\.well-known/ - [L]
+
+    # Bloquear archivos ocultos (.env, .git, etc.) y archivos/carpetas internas si la raíz es public_html
+    RewriteRule ^\. - [F,L]
+    RewriteRule ^(composer\.(json|lock)|artisan|README\.md|.*\.ps1)$ - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|deploy|docs|mobile|resources|routes|storage|tests|vendor)(/|$) - [F,L,NC]
+
+    # Redirigir el tráfico público hacia public/ sin bucles
+    RewriteCond %{ENV:REDIRECT_STATUS} ^$
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

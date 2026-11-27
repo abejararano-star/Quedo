@@ -1,12 +1,34 @@
-node_modules/
-.next/
-out/
 .env
 .env.*
 !.env.example
-storage/
-*.tsbuildinfo
-next-env.d.ts
+/vendor/
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitkeep
+
+/storage/*
+!/storage/app/
+/storage/app/*
+!/storage/app/.gitkeep
+!/storage/framework/
+/storage/framework/*
+!/storage/framework/cache/
+/storage/framework/cache/*
+!/storage/framework/cache/data/
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
+!/storage/framework/sessions/
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+!/storage/framework/views/
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+!/storage/logs/
+/storage/logs/*
+!/storage/logs/.gitkeep
+!/storage/media/
+/storage/media/*
+!/storage/media/.gitkeep
+
 *.log
 artifacts/
 
@@ -21,8 +43,7 @@ coverage/
 *.bak
 *.sqlite*
 *.csv
-!prisma/migrations/**/migration.sql
-!laravel/database/schema/quedo.sql
+!database/schema/quedo.sql
 
 # Material de autenticación y configuración de herramientas locales.
 *.pem
@@ -44,5 +65,3 @@ client_secret*.json
 .env*.local
 .DS_Store
 Thumbs.db
-vendor/
-laravel/bootstrap/cache/*.php
